@@ -6,6 +6,6 @@ register = template.Library()
 
 @register.simple_tag
 def date_format():
-    format = get_format('SHORT_DATE_FORMAT')
-    format = format.replace('m', 'mm').replace('d', 'dd').replace('Y', 'yyyy')
+    format = get_format('DATE_INPUT_FORMATS')[0]
+    format = format.replace('%m', 'mm').replace('%d', 'dd').replace('%Y', 'yyyy')
     return format
