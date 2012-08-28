@@ -13,6 +13,16 @@ $.fn.autogrow = function() {
     return this.not('.hasAutogrow').addClass('hasAutogrow').elastic();
 };
 
+/* gettext dummy
+* if you need internationalizations, read here how to activate:
+* https://docs.djangoproject.com/en/dev/topics/i18n/translation/#internationalization-in-javascript-code
+* */
+if (window.gettext === undefined) {
+    window.gettext = function(msgid) {
+        return msgid
+    }
+}
+
 
 /* onReady */
 (function($) {
@@ -65,6 +75,8 @@ $.fn.autogrow = function() {
         $elem.find('form').each(function() {
             var $form = $(this),
                 handleResponse = function(data) {
+                    window.modalLoad.locked = false;
+
                     if (typeof(data) == 'string') {
                         $elem.html(data);
                         initModal.call($elem.get(0));
@@ -78,7 +90,13 @@ $.fn.autogrow = function() {
                         });
                         $elem.modal('hide');
                     }
-                };
+                }
+
+            // set modal to locked: navigating away will be prevented
+            // and also closing the modal will prompt the user
+            $form.on('change', function(event) {
+                window.modalLoad.locked = true;
+            });
 
             $form.on('submit', function() {
                 // TODO detect enctype=multipart/form-data and use
@@ -117,7 +135,17 @@ $.fn.autogrow = function() {
             /* create div for holding AJAX-loaded modals, once */
             modal = $('<div id="ajax-modal" class="modal fade" />');
             modal.appendTo('body');
-            modal.on('hide', function() {
+            modal.on('hide', function(event) {
+
+                // if the modal is locked (i.e. uploading/submission in progress)
+                if (window.modalLoad.locked) {
+                    if (!confirm(gettext('You have unsaved changes. Do you really want to throw them away?'))) {
+                        return false;
+                    }
+                }
+
+                // unlock the modal
+                window.modalLoad.locked = false;
                 $('#logo').focus().blur();
             });
         }
@@ -127,10 +155,16 @@ $.fn.autogrow = function() {
         }).modal();
     };
 
-
     $('body').on('click', 'a[data-toggle=ajaxmodal]', function(e) {
         modalLoad(this.href);
         return false;
+    });
+
+    // prevent navigating away without saving:
+    $(window).on('beforeunload', function() {
+        if (window.modalLoad.locked) {
+          return gettext('You have unsaved changes. Do you really want to throw them away?')
+        };
     });
 
     /* inject function into the global namespace */
